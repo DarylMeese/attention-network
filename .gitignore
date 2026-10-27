@@ -1,0 +1,11 @@
+# WordPress & OS
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Development artifacts
+dist/*.zip
+vendor/
+node_modules/

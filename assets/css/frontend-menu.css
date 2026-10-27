@@ -1,0 +1,529 @@
+/**
+ * Attention Network — Frontend Menu Stylesheets
+ * Supports: Standard Bistro Menu, Brewery Taplist Board, and Mobile QR View
+ */
+
+.attn-menu-root {
+    --attn-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --attn-bg: #ffffff;
+    --attn-text: #1e293b;
+    --attn-muted: #64748b;
+    --attn-accent: #2563eb;
+    --attn-border: #e2e8f0;
+    --attn-card-bg: #f8fafc;
+    --attn-price: #059669;
+
+    font-family: var(--attn-font-sans);
+    color: var(--attn-text);
+    background: var(--attn-bg);
+    line-height: 1.5;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 2em 0;
+}
+.attn-menu-root * {
+    box-sizing: border-box;
+}
+
+/* -------------------------------------------------------------
+ * Theme Presets
+ * ------------------------------------------------------------- */
+.attn-menu-root.attn-theme-dark {
+    --attn-bg: #090d16;
+    --attn-text: #f1f5f9;
+    --attn-muted: #94a3b8;
+    --attn-accent: #38bdf8;
+    --attn-border: #1e293b;
+    --attn-card-bg: #0f172a;
+    --attn-price: #34d399;
+}
+.attn-menu-root.attn-theme-amber {
+    --attn-bg: #fdfbf7;
+    --attn-text: #292524;
+    --attn-muted: #78716c;
+    --attn-accent: #d97706;
+    --attn-border: #e7e5e4;
+    --attn-card-bg: #f5f5f4;
+    --attn-price: #b45309;
+}
+.attn-menu-root.attn-theme-emerald {
+    --attn-bg: #fcfdfd;
+    --attn-text: #064e3b;
+    --attn-muted: #047857;
+    --attn-accent: #059669;
+    --attn-border: #d1fae5;
+    --attn-card-bg: #ecfdf5;
+    --attn-price: #047857;
+}
+.attn-menu-root.attn-theme-brewery {
+    --attn-bg: #121212;
+    --attn-text: #f59e0b;
+    --attn-muted: #a3a3a3;
+    --attn-accent: #fbbf24;
+    --attn-border: #262626;
+    --attn-card-bg: #1c1917;
+    --attn-price: #fbbf24;
+}
+
+/* -------------------------------------------------------------
+ * 1. Standard Restaurant Layout
+ * ------------------------------------------------------------- */
+.attn-standard-layout {
+    padding: 24px;
+    border-radius: 12px;
+}
+.attn-menu-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+.attn-menu-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+}
+.attn-menu-subtitle {
+    font-size: 1.1rem;
+    color: var(--attn-muted);
+    margin: 0;
+}
+
+/* Navigation */
+.attn-section-nav {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 40px;
+}
+.attn-sec-link {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    background: var(--attn-card-bg);
+    color: var(--attn-text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid var(--attn-border);
+    transition: all 0.2s ease;
+}
+.attn-sec-link:hover {
+    background: var(--attn-accent);
+    color: #ffffff;
+    border-color: var(--attn-accent);
+}
+
+/* Sections */
+.attn-menu-section {
+    margin-bottom: 48px;
+}
+.attn-section-banner {
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--attn-border);
+    padding-bottom: 8px;
+}
+.attn-section-heading {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+.attn-section-subheading {
+    font-size: 0.95rem;
+    color: var(--attn-muted);
+    margin: 0;
+}
+
+/* Items */
+.attn-items-collection {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 24px;
+}
+.attn-item-entry {
+    display: flex;
+    gap: 16px;
+    background: var(--attn-card-bg);
+    border: 1px solid var(--attn-border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.attn-item-entry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+}
+.attn-item-media {
+    width: 88px;
+    height: 88px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.attn-item-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.attn-item-body {
+    flex: 1;
+    min-width: 0;
+}
+.attn-item-headline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.attn-item-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+}
+.attn-item-dots {
+    flex: 1;
+    border-bottom: 1px dotted var(--attn-border);
+    margin: 0 8px;
+}
+.attn-item-cost {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--attn-price);
+}
+.attn-item-description {
+    font-size: 0.88rem;
+    color: var(--attn-muted);
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+.attn-item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.attn-badge-calorie {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--attn-border);
+    color: var(--attn-muted);
+}
+.attn-badge-dietary {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+.attn-item-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--attn-border);
+}
+.attn-options-label {
+    color: var(--attn-muted);
+    margin-right: 4px;
+}
+.attn-opt-chip {
+    background: var(--attn-bg);
+    border: 1px solid var(--attn-border);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* -------------------------------------------------------------
+ * 2. Taplist Board Layout
+ * ------------------------------------------------------------- */
+.attn-taplist-layout {
+    padding: 30px;
+    border-radius: 12px;
+}
+.attn-taplist-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.attn-taplist-badge {
+    display: inline-block;
+    background: var(--attn-accent);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+.attn-taplist-title {
+    font-size: 2.4rem;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.attn-taplist-subtitle {
+    font-size: 1rem;
+    color: var(--attn-muted);
+    margin-top: 4px;
+}
+.attn-taplist-section {
+    margin-bottom: 36px;
+}
+.attn-taplist-section-title {
+    font-size: 1.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--attn-accent);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+.attn-taplist-table {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.attn-taplist-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 140px 180px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--attn-card-bg);
+    border-radius: 6px;
+    border: 1px solid var(--attn-border);
+}
+.attn-taplist-row-head {
+    background: transparent;
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--attn-muted);
+    letter-spacing: 0.05em;
+    padding-bottom: 4px;
+}
+.attn-tap-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--attn-accent);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+.attn-beer-name {
+    font-size: 1.05rem;
+    display: block;
+}
+.attn-beer-desc {
+    font-size: 0.8rem;
+    color: var(--attn-muted);
+    margin: 2px 0 0 0;
+}
+.attn-badge-style {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--attn-border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+}
+.attn-badge-abv {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--attn-accent);
+}
+.attn-base-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--attn-price);
+}
+.attn-pours-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    color: var(--attn-muted);
+}
+.attn-pour-size strong {
+    color: var(--attn-price);
+}
+
+/* -------------------------------------------------------------
+ * 3. Mobile QR Layout
+ * ------------------------------------------------------------- */
+.attn-qr-layout {
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 16px;
+    border: 1px solid var(--attn-border);
+    overflow: hidden;
+    background: var(--attn-bg);
+}
+.attn-qr-header {
+    padding: 20px 16px;
+    text-align: center;
+    background: var(--attn-card-bg);
+    border-bottom: 1px solid var(--attn-border);
+}
+.attn-qr-tag {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--attn-accent);
+}
+.attn-qr-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 4px 0;
+}
+.attn-qr-desc {
+    font-size: 0.85rem;
+    color: var(--attn-muted);
+    margin: 0;
+}
+.attn-qr-categories-scroll {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--attn-bg);
+    border-bottom: 1px solid var(--attn-border);
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 10px 12px;
+}
+.attn-qr-categories-inner {
+    display: inline-flex;
+    gap: 8px;
+}
+.attn-qr-pill {
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: var(--attn-card-bg);
+    color: var(--attn-text);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--attn-border);
+}
+.attn-qr-pill.active, .attn-qr-pill:hover {
+    background: var(--attn-accent);
+    color: #ffffff;
+    border-color: var(--attn-accent);
+}
+.attn-qr-content {
+    padding: 16px;
+}
+.attn-qr-section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 20px 0 10px 0;
+}
+.attn-qr-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.attn-qr-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    background: var(--attn-card-bg);
+    border: 1px solid var(--attn-border);
+    border-radius: 10px;
+}
+.attn-qr-card-info {
+    flex: 1;
+}
+.attn-qr-card-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+.attn-qr-item-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+}
+.attn-qr-item-price {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--attn-price);
+}
+.attn-qr-item-desc {
+    font-size: 0.8rem;
+    color: var(--attn-muted);
+    margin: 4px 0;
+}
+.attn-qr-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+.attn-qr-badge-cal {
+    font-size: 0.68rem;
+    background: var(--attn-border);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.attn-qr-badge-dietary {
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.attn-qr-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+.attn-qr-option-pill {
+    font-size: 0.7rem;
+    background: var(--attn-bg);
+    border: 1px solid var(--attn-border);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+.attn-qr-card-media {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.attn-qr-card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (max-width: 640px) {
+    .attn-items-collection {
+        grid-template-columns: 1fr;
+    }
+    .attn-taplist-row {
+        grid-template-columns: 36px 1fr 90px;
+    }
+    .attn-col-pours {
+        grid-column: span 3;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px dashed var(--attn-border);
+    }
+}
