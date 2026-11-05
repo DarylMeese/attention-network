@@ -1,6 +1,6 @@
 # Attention Network for WordPress
 
-Version 1.1.1 connects a WordPress website to an Attention Network organization. The platform remains the source of truth for menus, hours and published reviews.
+Version 1.1.2 connects a WordPress website to an Attention Network organization. The platform remains the source of truth for menus, hours and published reviews.
 
 ## Set up
 

@@ -3,7 +3,7 @@
  * Plugin Name: Attention Network
  * Plugin URI: https://attentionnetwork.com
  * Description: Connect your website directly to your Attention Network organization. Manage your food and drink menus directly from WordPress, sync with the platform in real time, and display menus anywhere using shortcodes or Gutenberg blocks.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Attention Network
  * Author URI: https://attentionnetwork.com
  * License: GPLv2 or later
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('ATTENTION_NETWORK_VERSION', '1.1.1');
+define('ATTENTION_NETWORK_VERSION', '1.1.2');
 define('ATTENTION_NETWORK_PATH', plugin_dir_path(__FILE__));
 define('ATTENTION_NETWORK_URL', plugin_dir_url(__FILE__));
 define('ATTENTION_NETWORK_BASENAME', plugin_basename(__FILE__));

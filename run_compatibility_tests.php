@@ -2,7 +2,7 @@
 /** Offline WordPress boundary tests; no database, provider, email or network requests. */
 error_reporting(E_ALL);
 set_error_handler(function($level,$message,$file,$line){throw new ErrorException($message,0,$level,$file,$line);});
-define('ABSPATH', __DIR__); define('ATTENTION_NETWORK_PATH', __DIR__.'/'); define('ATTENTION_NETWORK_URL','https://website.example/plugins/attention-network/'); define('ATTENTION_NETWORK_VERSION','1.1.1');
+define('ABSPATH', __DIR__); define('ATTENTION_NETWORK_PATH', __DIR__.'/'); define('ATTENTION_NETWORK_URL','https://website.example/plugins/attention-network/'); define('ATTENTION_NETWORK_VERSION','1.1.2');
 class WP_Error {private $code,$message,$data;function __construct($c,$m,$d=null){$this->code=$c;$this->message=$m;$this->data=$d;}function get_error_message(){return $this->message;}function get_error_code(){return $this->code;}function get_error_data(){return $this->data;}}
 class JsonReply extends Exception {public $success,$data,$status;function __construct($ok,$data,$status){$this->success=$ok;$this->data=$data;$this->status=$status;}}
 class Attention_Network_Platform_Session {static $calls=0;static $token='test-user-session';static function get_access_token(){self::$calls++;return self::$token;}static function status(){return array('connected'=>true,'email'=>'qa@example.test','needsLogin'=>false);}}

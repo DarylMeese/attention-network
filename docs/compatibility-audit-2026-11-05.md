@@ -60,8 +60,12 @@ New files: encrypted session helper and its focused test, integrated PHP compati
 ## Evidence and limits
 
 - PHP 8.4: **109 offline compatibility checks passed**. These execute real client/renderers/handlers against controlled WordPress transport/storage, covering privacy, DTOs, mutation failure, guards, callbacks, version payloads, unknown/stale records and templates.
-- Encrypted session helper: **11 offline cases passed**, including binding changes, tampering, serialized rotation, stale-lock ownership, failed storage and unconfirmed logout.
+- Encrypted session helper: **12 offline cases passed**, including binding changes, tampering, serialized rotation, stale-lock ownership, failed storage, real WordPress metadata unslashing and unconfirmed logout.
 - Chromium headless: **17 controlled DOM checks passed** using the actual plugin JavaScript and pinned jQuery 3.7.1, covering keyboard dialogs, private login input handling, honest disconnect failure and stored HTML injection. External requests are blocked; browser processes close in `finally`.
 - **20 PHP files passed syntax checks**; both production JavaScript files pass Node syntax checks.
 - No real emails, external provider operations or application database writes were used by these tests. Native WordPress/MySQL advisory lock execution, actual platform account sign-in/refresh, permission denial, installed shortcode rendering and CRUD require a controlled dedicated-account installation acceptance run. They are not claimed by offline fixtures.
 - A production ZIP excludes tests, stubs, Git metadata and development dependencies. Its file manifest/hash is supplied separately for installation review.
+
+## Native acceptance follow-up
+
+The first real WordPress sign-in exposed a metadata boundary missed by the original offline stub: `update_user_meta` unslashes values, so encrypted JSON needed `wp_slash` before persistence. The old helper rejected the changed byte representation after the API had accepted sign-in. Version 1.1.2 includes that repair, a reproduced failing regression, and the corrected 12-case helper gate. Failed temporary WordPress sessions/privileges were retired; no menu mutation occurred in that failed sign-in attempt. Native acceptance evidence is recorded separately after installing the corrected artifact.
