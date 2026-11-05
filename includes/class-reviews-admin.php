@@ -40,7 +40,8 @@ class Attention_Network_Reviews_Admin {
         }
 
         $reviews_data = Attention_Network_API_Client::get_reviews(false);
-        $avg_rating   = isset($reviews_data['averageRating']) ? floatval($reviews_data['averageRating']) : 5.0;
+        if (is_wp_error($reviews_data)) { echo '<div class="wrap"><h1>'.esc_html__('Published reviews', 'attention-network').'</h1><p>'.esc_html($reviews_data->get_error_message()).'</p></div>'; return; }
+        $avg_rating   = isset($reviews_data['averageRating']) ? floatval($reviews_data['averageRating']) : 0;
         $total_count  = isset($reviews_data['totalReviews']) ? intval($reviews_data['totalReviews']) : 0;
         $items        = isset($reviews_data['items']) ? (array) $reviews_data['items'] : array();
         ?>
@@ -49,14 +50,14 @@ class Attention_Network_Reviews_Admin {
                 <div class="attn-header-left">
                     <span class="attn-badge"><?php esc_html_e('Reputation & Trust', 'attention-network'); ?></span>
                     <h1 class="attn-title"><?php esc_html_e('Customer Reviews & Ratings', 'attention-network'); ?></h1>
-                    <p class="attn-subtitle"><?php esc_html_e('Monitor verified customer feedback, manage official business replies, and showcase your 5-star reputation on your website.', 'attention-network'); ?></p>
+                    <p class="attn-subtitle"><?php esc_html_e('Read published customer feedback. Reply actions require your platform account’s permission. The average covers only the reviews displayed below.', 'attention-network'); ?></p>
                 </div>
             </div>
 
             <!-- Reputation Overview Cards -->
             <div class="attn-metrics-bar">
                 <div class="attn-metric-card">
-                    <span class="attn-metric-label"><?php esc_html_e('Overall Rating', 'attention-network'); ?></span>
+                    <span class="attn-metric-label"><?php esc_html_e('Average of reviews shown below', 'attention-network'); ?></span>
                     <div class="attn-metric-val-row">
                         <span class="attn-metric-val"><?php echo number_format($avg_rating, 1); ?></span>
                         <span class="attn-stars" style="color: #f59e0b; font-size: 20px; margin-left: 8px;">
@@ -71,7 +72,7 @@ class Attention_Network_Reviews_Admin {
                 </div>
 
                 <div class="attn-metric-card">
-                    <span class="attn-metric-label"><?php esc_html_e('Total Verified Reviews', 'attention-network'); ?></span>
+                    <span class="attn-metric-label"><?php esc_html_e('Published reviews', 'attention-network'); ?></span>
                     <span class="attn-metric-val"><?php echo esc_html($total_count ?: count($items)); ?></span>
                 </div>
 
@@ -112,7 +113,7 @@ class Attention_Network_Reviews_Admin {
                                     $title       = esc_html($item['title'] ?? '');
                                     $body        = esc_html($item['body'] ?? '');
                                     $date_str    = !empty($item['createdAt']) ? esc_html(date_i18n(get_option('date_format'), strtotime($item['createdAt']))) : '';
-                                    $source      = esc_html($item['source'] ?? 'Verified Customer');
+                                    $source      = esc_html($item['source'] ?? 'Published review');
                                     $response    = $item['response'] ?? null;
                                 ?>
                                     <div class="attn-review-item" data-review-id="<?php echo $review_id; ?>">

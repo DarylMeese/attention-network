@@ -56,9 +56,11 @@ class Attention_Network_Business_Admin {
         }
 
         $locations_response = Attention_Network_API_Client::get_locations();
+        if (is_wp_error($locations_response)) { echo '<div class="wrap"><h1>'.esc_html__('Operating hours', 'attention-network').'</h1><p>'.esc_html($locations_response->get_error_message()).'</p></div>'; return; }
         $locations = (!is_wp_error($locations_response) && isset($locations_response['locations'])) 
             ? $locations_response['locations'] 
             : array();
+        if (!$locations) { echo '<div class="wrap"><h1>'.esc_html__('Operating hours', 'attention-network').'</h1><p>'.esc_html__('No locations are available for this account. Create a location in the platform, or ask its manager for access.', 'attention-network').'</p><a href="https://app.attn.systems/">'.esc_html__('Open Attention Network', 'attention-network').'</a></div>'; return; }
 
         // Default or selected location
         $active_location_id = isset($_GET['location_id']) ? sanitize_text_field($_GET['location_id']) : '';
@@ -68,9 +70,13 @@ class Attention_Network_Business_Admin {
 
         $hours_data = array();
         $special_hours = array();
+        $hours_version = ''; $hours_can_manage = false;
 
         if (!empty($active_location_id)) {
             $h_res = Attention_Network_API_Client::get_hours($active_location_id);
+            if (is_wp_error($h_res)) { echo '<div class="wrap"><p>'.esc_html($h_res->get_error_message()).'</p></div>'; return; }
+            $hours_version = $h_res['version'] ?? '';
+            $hours_can_manage = !empty($h_res['canManage']);
             if (!is_wp_error($h_res) && isset($h_res['hours'])) {
                 $hours_data = $h_res['hours'];
             }
@@ -88,24 +94,27 @@ class Attention_Network_Business_Admin {
             4 => __('Thursday', 'attention-network'),
             5 => __('Friday', 'attention-network'),
             6 => __('Saturday', 'attention-network'),
-            0 => __('Sunday', 'attention-network'),
+            7 => __('Sunday', 'attention-network'),
         );
 
         // Normalize hours keyed by dayOfWeek
         $indexed_hours = array();
         foreach ($hours_data as $h) {
+            if (isset($indexed_hours[intval($h['dayOfWeek'])]) || (empty($h['isClosed']) && ($h['openTime'] === null || $h['closeTime'] === null))) {
+                Attention_Network_Settings::render_unavailable(__('This location has multiple daily periods or 24-hour opening. Edit its full schedule in the platform.', 'attention-network')); return;
+            }
             $indexed_hours[intval($h['dayOfWeek'])] = $h;
         }
 
         // Local emergency dispatch state stored in WordPress options as well
-        $emergency_dispatch = get_option('attention_network_emergency_dispatch_' . $active_location_id, '0');
         ?>
-        <div class="wrap attn-admin-wrap">
+        <div class="wrap attn-admin-wrap" id="attn-hours-management" data-can-manage="<?php echo $hours_can_manage ? '1' : '0'; ?>">
+            <?php if (!$hours_can_manage): ?><p class="notice notice-info"><?php esc_html_e('Your platform account has read-only access to these hours.', 'attention-network'); ?></p><?php endif; ?>
             <div class="attn-header">
                 <div class="attn-header-left">
                     <span class="attn-badge"><?php esc_html_e('Business Operations', 'attention-network'); ?></span>
                     <h1 class="attn-title"><?php esc_html_e('Operating Hours & Availability', 'attention-network'); ?></h1>
-                    <p class="attn-subtitle"><?php esc_html_e('Manage regular weekly business hours, holiday closures, and 24/7 emergency dispatch status.', 'attention-network'); ?></p>
+                    <p class="attn-subtitle"><?php echo esc_html(sprintf(__('Manage weekly hours and holiday closures. Times use %s.', 'attention-network'), $h_res['effectiveTimezone'] ?? 'UTC')); ?></p>
                 </div>
                 <div class="attn-header-right">
                     <?php if (count($locations) > 1): ?>
@@ -130,17 +139,12 @@ class Attention_Network_Business_Admin {
                         <div class="attn-card-header-flex">
                             <div>
                                 <h2 class="attn-card-title"><?php esc_html_e('Regular Weekly Hours', 'attention-network'); ?></h2>
-                                <p class="attn-card-desc"><?php esc_html_e('Set opening and closing times. Customers will see real-time Open Now / Closed status.', 'attention-network'); ?></p>
-                            </div>
-                            <div class="attn-emergency-toggle-wrap">
-                                <label class="attn-switch-label" style="display:flex;align-items:center;gap:8px;font-weight:600;color:#c026d3;">
-                                    <input type="checkbox" id="attn_emergency_dispatch" value="1" <?php checked($emergency_dispatch, '1'); ?> />
-                                    <?php esc_html_e('24/7 Emergency Dispatch Active', 'attention-network'); ?>
-                                </label>
+                                <p class="attn-card-desc"><?php esc_html_e('Set one opening period per day. Unconfigured days start closed. Use the platform for multiple periods or 24-hour schedules.', 'attention-network'); ?></p>
                             </div>
                         </div>
 
                         <form id="attn-hours-form">
+                            <input type="hidden" id="attn_hours_version" value="<?php echo esc_attr($hours_version); ?>" />
                             <input type="hidden" id="attn_hours_location_id" value="<?php echo esc_attr($active_location_id); ?>" />
                             <table class="widefat striped" style="margin-top:16px;border-radius:8px;overflow:hidden;">
                                 <thead>
@@ -154,7 +158,7 @@ class Attention_Network_Business_Admin {
                                 <tbody>
                                     <?php foreach ($days as $day_num => $day_name): 
                                         $entry = isset($indexed_hours[$day_num]) ? $indexed_hours[$day_num] : array();
-                                        $is_closed = !empty($entry['isClosed']);
+                                        $is_closed = empty($entry) || !empty($entry['isClosed']);
                                         $open_val = !empty($entry['openTime']) ? substr($entry['openTime'], 0, 5) : '08:00';
                                         $close_val = !empty($entry['closeTime']) ? substr($entry['closeTime'], 0, 5) : '17:00';
                                     ?>
@@ -244,7 +248,7 @@ class Attention_Network_Business_Admin {
                                                 <td><?php echo esc_html($sp['note'] ?? __('Special Hours', 'attention-network')); ?></td>
                                                 <td><span class="badge"><?php echo $time_str; ?></span></td>
                                                 <td style="text-align:right;">
-                                                    <button type="button" class="button-link-delete attn-delete-sp" data-sp-id="<?php echo esc_attr($sp_id); ?>">
+                                                    <button type="button" class="button-link-delete attn-delete-sp" data-sp-id="<?php echo esc_attr($sp_id); ?>" data-version="<?php echo esc_attr($sp['version'] ?? ''); ?>">
                                                         <?php esc_html_e('Remove', 'attention-network'); ?>
                                                     </button>
                                                 </td>
@@ -282,7 +286,6 @@ class Attention_Network_Business_Admin {
         self::verify_ajax_security();
 
         $location_id = isset($_POST['location_id']) ? sanitize_text_field($_POST['location_id']) : '';
-        $emergency   = isset($_POST['emergency_dispatch']) ? sanitize_text_field($_POST['emergency_dispatch']) : '0';
         $raw_hours   = isset($_POST['hours']) ? (array) $_POST['hours'] : array();
 
         if (empty($location_id)) {
@@ -293,7 +296,7 @@ class Attention_Network_Business_Admin {
         $validated_hours = array();
         foreach ($raw_hours as $h) {
             $day = intval($h['dayOfWeek'] ?? 0);
-            if ($day < 0 || $day > 6) continue;
+            if ($day < 1 || $day > 7) wp_send_json_error(array('message'=>__('Choose a valid weekday.', 'attention-network')), 400);
 
             $is_closed = !empty($h['isClosed']);
             $open = sanitize_text_field($h['openTime'] ?? '08:00');
@@ -305,22 +308,21 @@ class Attention_Network_Business_Admin {
 
             $validated_hours[] = array(
                 'dayOfWeek' => $day,
-                'openTime'  => $open,
-                'closeTime' => $close,
+                'openTime'  => $is_closed ? null : $open,
+                'closeTime' => $is_closed ? null : $close,
                 'isClosed'  => $is_closed,
             );
         }
 
-        // Save emergency status
-        update_option('attention_network_emergency_dispatch_' . $location_id, $emergency === '1' ? '1' : '0');
-
-        $result = Attention_Network_API_Client::update_hours($location_id, $validated_hours);
+        $version = sanitize_text_field($_POST['version'] ?? '');
+        if (!preg_match('/^[a-f0-9]{64}$/D', $version)) wp_send_json_error(array('message'=>__('Reload these hours before saving.', 'attention-network')), 400);
+        $result = Attention_Network_API_Client::update_hours($location_id, $validated_hours, $version);
 
         if (is_wp_error($result)) {
             wp_send_json_error(array('message' => $result->get_error_message()));
         }
 
-        wp_send_json_success(array('message' => __('Hours updated successfully.', 'attention-network')));
+        wp_send_json_success(array('message' => __('Hours updated successfully.', 'attention-network'), 'version' => $result['version'] ?? ''));
     }
 
     /**
@@ -351,8 +353,8 @@ class Attention_Network_Business_Admin {
         $payload = array(
             'date'      => $date,
             'isClosed'  => $is_closed,
-            'openTime'  => $open,
-            'closeTime' => $close,
+            'openTime'  => $is_closed ? null : $open,
+            'closeTime' => $is_closed ? null : $close,
             'note'      => !empty($note) ? $note : null,
         );
 
@@ -378,12 +380,20 @@ class Attention_Network_Business_Admin {
             wp_send_json_error(array('message' => __('Missing identifiers.', 'attention-network')), 400);
         }
 
-        $result = Attention_Network_API_Client::delete_special_hours($location_id, $special_hours_id);
+        $version = sanitize_text_field($_POST['version'] ?? '');
+        if (!preg_match('/^[a-f0-9]{64}$/D', $version)) wp_send_json_error(array('message'=>__('Reload these special hours before removing an entry.', 'attention-network')), 400);
+        $result = Attention_Network_API_Client::delete_special_hours($location_id, $special_hours_id, $version);
 
         if (is_wp_error($result)) {
             wp_send_json_error(array('message' => $result->get_error_message()));
         }
 
         wp_send_json_success(array('message' => __('Special hours deleted.', 'attention-network')));
+    }
+
+    public static function handle_save_location_profile() {
+        self::verify_ajax_security();
+        $error = Attention_Network_API_Client::unsupported('Location profile management');
+        wp_send_json_error(array('message'=>$error->get_error_message()), 409);
     }
 }

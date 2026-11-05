@@ -84,7 +84,7 @@ $tap_index = 1;
                                 <?php endif; ?>
                             </div>
 
-                            <?php if ($show_prices) : ?>
+                            <?php if ($show_prices && isset($item['price_amount'])) : ?>
                                 <div class="attn-col-pours">
                                     <span class="attn-base-price">$<?php echo number_format($item['price_amount'] ?? 0, 2); ?></span>
                                     <?php

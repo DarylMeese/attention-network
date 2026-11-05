@@ -67,7 +67,7 @@ $sections = $menu_data['sections'] ?? array();
                                 <div class="attn-item-headline">
                                     <h4 class="attn-item-title"><?php echo esc_html($item['name']); ?></h4>
                                     <div class="attn-item-dots"></div>
-                                    <?php if ($show_prices) : ?>
+                                    <?php if ($show_prices && isset($item['price_amount'])) : ?>
                                         <span class="attn-item-cost">
                                             $<?php echo number_format($item['price_amount'] ?? 0, 2); ?>
                                         </span>

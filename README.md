@@ -1,102 +1,54 @@
-# Attention Network — WordPress Business Operations Suite
+# Attention Network for WordPress
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](attention-network.php)
-[![License](https://img.shields.io/badge/license-GPLv2-green.svg)](LICENSE)
-[![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://php.net)
-[![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-0073aa.svg)](https://wordpress.org)
+Version 1.1.1 connects a WordPress website to an Attention Network organization. The platform remains the source of truth for menus, hours and published reviews.
 
-**Attention Network** is a comprehensive, enterprise-grade **Business Operations & Growth Platform** for WordPress. It connects client websites directly to their Attention Network organization, empowering businesses across any local industry—from dining and retail to home contracting, medical/wellness clinics, auto repair, and professional services—to manage their digital operations from a single wp-admin dashboard.
+## Set up
 
----
+1. Install the `attention-network` plugin folder and activate it.
+2. Open **Attention Network → Settings**.
+3. Save the API address (`https://app.attentionnetwork.net/api`), the **organization UUID**, and the **public site UUID**. A Relationship ID or site slug cannot replace these UUIDs.
+4. Sign in with your own platform account and choose **Check menu access**. WordPress administrator access does not grant platform permissions.
 
-## 🌟 Key Capabilities
+Each WordPress administrator signs in separately. The connection is bound to that WordPress user, login session, organization and API address. Passwords are never stored. Access and refresh tokens are encrypted in private user metadata using the WordPress authentication salt; they never reach browser JavaScript or shared caches. Refresh is serialized and protected mutations are not automatically replayed. An unconfirmed disconnect is shown as a failure that can be retried.
 
-### 1. Universal Business Hours & 24/7 Emergency Dispatch
-- **7-Day Regular Hours**: Configure regular opening and closing hours by day of the week with multi-shift support.
-- **24/7 Emergency Dispatch**: Instantly toggle urgent on-call status across all web and mobile surfaces.
-- **Special Schedule Overrides**: Add holiday closures, special event schedules, or temporary maintenance notices.
-- **Shortcodes**:
-  - `[attention_hours]`: Full weekly schedule table.
-  - `[attention_open_badge]`: Live dynamic badge showing current open/closed status or emergency dispatch alert.
+The old shared API-key setting is retired. Organization API keys cannot authorize the platform's menu-management routes. The plugin does not create broader machine permissions or bypass platform roles.
 
-### 2. Staff Directory & "Meet Your Pro" Security Cards
-- **Verified Technician Credentials**: Display staff profiles with photos, titles, master state licenses, and verified background check clearance badges.
-- **Client Direct Actions**: Direct booking links and tip links (Venmo, Cash App, etc.) for field technicians and service pros.
-- **Shortcodes**:
-  - `[attention_staff_directory]`: Full responsive team directory.
-  - `[attention_pro name="..."]`: Single technician trust card.
+## Available features
 
-### 3. Offers, Specials & Redeemable Coupons Hub
-- **Promotional Campaigns**: Create percentage off, dollar discount, free service/inspection, and BOGO bundle offers.
-- **Conversion Badges**: Add highlight badges (*"Most Popular"*, *"New Client Special"*, *"Limited Time"*).
-- **Interactive Vouchers**: 1-click promo code copying with clipboard feedback, expiration countdowns, and terms & conditions.
-- **Shortcodes**:
-  - `[attention_offers category="HVAC" limit="6"]`: Grid of responsive coupon vouchers.
-  - `[attention_offer id="..."]`: Single offer embed card.
+- **Menu management:** create, edit and delete menus, sections, items and modifiers; reorder sections; choose display settings.
+- **Operating hours:** edit one period per weekday and special dates. Existing multiple-period and 24-hour schedules are edited in the platform to avoid flattening them. Times use the location's effective timezone. Saved versions prevent a stale hours form from overwriting a newer change.
+- **Published reviews:** read published reviews and submit/edit owner replies with the platform's review-management permission. The dashboard average is explicitly limited to the reviews shown, rather than claiming a business-wide aggregate.
+- **Website inquiries:** WordPress-local intake and status/notes. The latest 200 inquiries are retained. Inquiries are not platform lead-routing records and submitting a form does not book or dispatch a visit. Any configured website email notification uses WordPress mail.
+- **Project portfolio:** WordPress-local project records and before/after images. These do not synchronize with the platform.
 
-### 4. Customer Reviews & Reputation Hub
-- **Reputation Overview**: Live aggregate ratings (e.g. ★★★★★ 4.9 from verified clients) with Google Rich Snippet `AggregateRating` microdata.
-- **Official Owner Responses**: Business owners and managers can draft, edit, and publish verified owner replies directly from wp-admin.
-- **Shortcodes**:
-  - `[attention_rating_badge]`: Compact trust seal for headers or footers.
-  - `[attention_reviews min_rating="4" limit="6"]`: Testimonial grid showcasing verified customer reviews and owner responses.
+Local inquiry/portfolio writes use a bounded MySQL/MariaDB advisory lock so simultaneous requests cannot silently overwrite each other's option updates. If the database cannot obtain the lock, the request fails visibly without claiming a save.
 
-### 5. Inbound Leads, Quotes & Emergency Dispatch Queue
-- **Lead Intake Pipeline**: Inbound queue with workflow stages (`New` ➔ `Contacted` ➔ `Quoted` ➔ `Scheduled` ➔ `Completed`).
-- **Internal Staff Notes**: Private staff notes on each lead, plus instant click-to-call and click-to-email actions.
-- **Government-Grade Anti-Abuse**:
-  1. *Anti-Spam Honeypot*: Invisible bot trap silently drops automated submissions.
-  2. *Velocity Verifier*: Rejects sub-2-second bot form fills.
-  3. *Transient IP Rate Limiting*: Caps submissions at 5 per 10 minutes per IP address.
-- **Shortcode**:
-  - `[attention_lead_form type="quote|emergency|consultation"]`: Mobile-first intake form with instant AJAX feedback.
+## Public content
 
-### 6. Before & After Project Portfolio Showcase
-- **Craftsmanship Transformation Sliders**: Interactive split comparison sliders for contractors, remodelers, roofers, auto detailers, and cosmetic clinics.
-- **Shortcodes**:
-  - `[attention_before_after before="..." after="..." label="..."]`: Touch/drag interactive split image slider.
-  - `[attention_portfolio category="..." limit="6"]`: Full transformation showcase gallery.
+```text
+[attention_menu]
+[attention_menu id="MENU-UUID" layout="standard|taplist|qr"]
+[attention_reviews limit="6" min_rating="1"]
+[attention_rating_badge]
+[attention_lead_form type="quote|emergency|consultation"]
+[attention_portfolio category="" limit="6"]
+[attention_before_after before="https://…" after="https://…"]
+```
 
-### 7. Attention Push Notifications (Web Push)
-- Broadcast web push notifications directly from WordPress to opted-in desktop & mobile browser subscribers.
-- Segment broadcasts by interest tags or offer categories.
-- **Shortcode**:
-  - `[attention_push_prompt button_text="..."]`: Universal opt-in button.
+The Gutenberg **Attention Food Menu** block uses the same public renderer. Public menu reads use only `/tenants/{siteUUID}/organizations/{organizationUUID}/menus` and its menu detail route. The site must be active and the business eligible for that site. No administrator token, inactive-menu fallback, private management response or stale transient is used for public rendering.
 
-### 8. Food, Beverage & Service Menus
-- Full live menu management with multi-section support, dietary tags, ABV/IBU brewery stats, and modifier options.
-- Layout modes: Standard Restaurant, Taplist Brewery Board, and Mobile QR view.
-- **Shortcode**: `[attention_menu layout="standard|taplist|qr"]`
-- **Gutenberg Block**: `attention-network/food-menu`
+`attention_rating_badge` displays the published review count; it does not invent an aggregate rating or verified-review claim. Public review displays default to all star ratings and do not generate sample testimonials.
 
----
+Staff profiles, contact-card widgets, offer management, public operating-hours widgets and push subscription controls do not have compatible connections in this plugin. Their existing shortcode names remain registered to avoid errors, but produce no visitor content. Administrators see a clear explanation. The corresponding admin pages link to the platform instead of pretending to save or synchronize unsupported actions. Use the supported directory/site integration for those public surfaces.
 
-## 🔒 Enterprise & Government Security Standards
+## Validation
 
-- **Role-Based Access Control**: Strict `current_user_can('manage_options')` checks on every administrative screen and AJAX handler.
-- **CSRF Defense**: Cryptographic nonce validation (`check_ajax_referer('attention_network_admin_nonce', 'nonce')`).
-- **Input Sanitization & Output Escaping**: Comprehensive context-aware encoding (`esc_html`, `esc_attr`, `esc_url`, `wp_json_encode`).
-- **SSRF Defense**: `Attention_Network_API_Client::validate_api_url()` filters out RFC 1918 private subnets, loopbacks, and cloud metadata endpoints (`169.254.169.254`).
-- **Zero Runtime Collisions**: Built-in developer stubs guarantee clean static analysis in IDEs without runtime overhead.
+```text
+php run_platform_session_tests.php
+php run_compatibility_tests.php
+node tests/browser-compatibility.cjs --playwright /path/to/playwright-module --jquery /path/to/jquery-3.7.1.min.js
+```
 
----
+The PHP suites are offline and replace WordPress's transport/storage with controlled fixtures. The browser suite uses a headless, isolated DOM and blocks external requests. These checks do not replace installation acceptance against a real WordPress site and a dedicated platform test account.
 
-## 📦 Installation & Setup
-
-1. Download or clone this repository into your WordPress plugins folder:
-   ```bash
-   cd wp-content/plugins/
-   git clone https://github.com/DarylMeese/attention-network.git
-   ```
-2. In the WordPress Admin Panel, navigate to **Plugins** -> **Installed Plugins** and click **Activate** under **Attention Network**.
-3. Go to **Attention Network** -> **Settings**:
-   - Set **API Base URL** (e.g. `https://api.attentionnetwork.com` or local dev URL).
-   - Enter your **Organization ID** and **API Key**.
-   - Click **Test Connection** to verify live synchronization.
-
----
-
-## 📄 License
-
-Licensed under the GNU General Public License v2 (or later).
-Copyright © 2026 Attention Network.
+See [the compatibility audit](docs/compatibility-audit-2026-11-05.md) for the file inventory, current API mapping, evidence and acceptance boundaries.

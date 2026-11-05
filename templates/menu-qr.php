@@ -63,7 +63,7 @@ $sections = $menu_data['sections'] ?? array();
                             <div class="attn-qr-card-info">
                                 <div class="attn-qr-card-title-row">
                                     <h4 class="attn-qr-item-name"><?php echo esc_html($item['name']); ?></h4>
-                                    <?php if ($show_prices) : ?>
+                                    <?php if ($show_prices && isset($item['price_amount'])) : ?>
                                         <span class="attn-qr-item-price">$<?php echo number_format($item['price_amount'] ?? 0, 2); ?></span>
                                     <?php endif; ?>
                                 </div>

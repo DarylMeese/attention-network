@@ -384,7 +384,8 @@
     width: 520px;
     max-width: 90vw;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
     animation: attnModalFade 0.15s ease-out;
 }
 .attn-modal-lg {
@@ -411,7 +412,7 @@
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #94a3b8;
+    color: #475569;
 }
 .attn-modal-close:hover {
     color: #1e293b;
@@ -668,3 +669,15 @@
     text-decoration: none;
 }
 
+
+.attn-admin-wrap :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 2px;
+}
+@media (max-width: 600px) {
+    .attn-modal-grid, .attn-grid { grid-template-columns: 1fr; }
+    .attn-card { overflow-x: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .attn-modal { animation: none; }
+}

@@ -50,9 +50,9 @@ class Attention_Network_Blocks {
         // Fetch menus to pass to Gutenberg inspector
         $menus = array();
         if (Attention_Network_API_Client::is_configured()) {
-            $resp = Attention_Network_API_Client::get_menus();
+            $resp = Attention_Network_API_Client::get_public_menus();
             if (!is_wp_error($resp) && is_array($resp)) {
-                $menus = $resp;
+                $menus = array_map(function($menu) { return array('id'=>$menu['id'], 'name'=>$menu['name'], 'is_active'=>true); }, $resp);
             }
         }
 

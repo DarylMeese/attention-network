@@ -44,8 +44,11 @@ class Attention_Network_Menu_Admin {
         $is_configured = Attention_Network_API_Client::is_configured();
         $menus = array();
         $error_message = '';
+        $can_manage = false;
 
         if ($is_configured) {
+            $capability = Attention_Network_API_Client::get_capability();
+            $can_manage = !is_wp_error($capability) && !empty($capability['canManage']) && !empty($capability['menusEnabled']);
             $response = Attention_Network_API_Client::get_menus(true);
             if (is_wp_error($response)) {
                 $error_message = $response->get_error_message();
@@ -68,7 +71,8 @@ class Attention_Network_Menu_Admin {
             }
         }
         ?>
-        <div class="wrap attn-admin-wrap" id="attn-menu-app" data-menu-id="<?php echo esc_attr($active_menu_id); ?>">
+        <div class="wrap attn-admin-wrap" id="attn-menu-app" data-menu-id="<?php echo esc_attr($active_menu_id); ?>" data-is-active="<?php echo !empty($active_menu['is_active']) ? '1' : '0'; ?>" data-can-manage="<?php echo $can_manage ? '1' : '0'; ?>">
+            <?php if (!$can_manage && $is_configured && !$error_message): ?><p class="notice notice-info"><?php esc_html_e('Menu editing is unavailable for this platform account or organization. Viewing does not grant permission to change menus.', 'attention-network'); ?></p><?php endif; ?>
             <!-- Header Bar -->
             <div class="attn-header">
                 <div class="attn-header-left">
@@ -359,14 +363,6 @@ class Attention_Network_Menu_Admin {
                                         <span><?php esc_html_e('Show Item Prices', 'attention-network'); ?></span>
                                     </label>
                                     <label class="attn-toggle-label">
-                                        <input type="checkbox" name="show_calories" value="1" <?php checked($ds['show_calories'] ?? true); ?> />
-                                        <span><?php esc_html_e('Show Calorie Badges', 'attention-network'); ?></span>
-                                    </label>
-                                    <label class="attn-toggle-label">
-                                        <input type="checkbox" name="show_dietary_tags" value="1" <?php checked($ds['show_dietary_tags'] ?? true); ?> />
-                                        <span><?php esc_html_e('Show Dietary Badges (GF, Vegan, etc.)', 'attention-network'); ?></span>
-                                    </label>
-                                    <label class="attn-toggle-label">
                                         <input type="checkbox" name="show_abv" value="1" <?php checked($ds['show_abv'] ?? false); ?> />
                                         <span><?php esc_html_e('Show ABV % (Alcohol by Volume)', 'attention-network'); ?></span>
                                     </label>
@@ -421,10 +417,6 @@ class Attention_Network_Menu_Admin {
                             <input type="text" id="attn-menu-field-name" required placeholder="e.g. Dinner Menu, Craft Beer List" class="widefat" />
                         </div>
                         <div class="attn-form-row">
-                            <label for="attn-menu-field-desc"><?php esc_html_e('Description / Subtitle', 'attention-network'); ?></label>
-                            <textarea id="attn-menu-field-desc" rows="3" placeholder="e.g. Served daily from 5:00 PM to 10:00 PM" class="widefat"></textarea>
-                        </div>
-                        <div class="attn-form-row">
                             <label class="attn-toggle-label">
                                 <input type="checkbox" id="attn-menu-field-active" checked />
                                 <span><?php esc_html_e('Active (Visible to website visitors)', 'attention-network'); ?></span>
@@ -451,10 +443,6 @@ class Attention_Network_Menu_Admin {
                             <label for="attn-section-field-name"><?php esc_html_e('Section Title', 'attention-network'); ?> *</label>
                             <input type="text" id="attn-section-field-name" required placeholder="e.g. Starters, Wood-Fired Pizza, Cocktails" class="widefat" />
                         </div>
-                        <div class="attn-form-row">
-                            <label for="attn-section-field-desc"><?php esc_html_e('Section Description', 'attention-network'); ?></label>
-                            <input type="text" id="attn-section-field-desc" placeholder="e.g. Served with house-made sourdough" class="widefat" />
-                        </div>
                         <div class="attn-modal-footer">
                             <button type="button" class="button button-secondary attn-modal-cancel"><?php esc_html_e('Cancel', 'attention-network'); ?></button>
                             <button type="submit" class="button button-primary" id="attn-btn-save-section"><?php esc_html_e('Save Section', 'attention-network'); ?></button>
@@ -480,8 +468,8 @@ class Attention_Network_Menu_Admin {
                                 <input type="text" id="attn-item-field-name" required placeholder="e.g. Truffle Parmesan Fries" class="widefat" />
                             </div>
                             <div class="attn-form-row">
-                                <label for="attn-item-field-price"><?php esc_html_e('Price ($ USD)', 'attention-network'); ?> *</label>
-                                <input type="number" step="0.01" min="0" id="attn-item-field-price" required placeholder="14.00" class="widefat" />
+                                <label for="attn-item-field-price"><?php esc_html_e('Price (USD, optional)', 'attention-network'); ?></label>
+                                <input type="number" step="0.01" min="0" max="1000000" id="attn-item-field-price" placeholder="14.00" class="widefat" />
                             </div>
                         </div>
 
@@ -493,7 +481,7 @@ class Attention_Network_Menu_Admin {
                         <div class="attn-modal-grid">
                             <div class="attn-form-row">
                                 <label for="attn-item-field-calories"><?php esc_html_e('Calories (optional)', 'attention-network'); ?></label>
-                                <input type="number" id="attn-item-field-calories" placeholder="e.g. 580" class="widefat" />
+                                <input type="number" min="0" max="100000" id="attn-item-field-calories" placeholder="e.g. 580" class="widefat" />
                             </div>
                             <div class="attn-form-row">
                                 <label for="attn-item-field-photo"><?php esc_html_e('Photo URL (optional)', 'attention-network'); ?></label>
@@ -567,6 +555,12 @@ class Attention_Network_Menu_Admin {
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Unauthorized permission.', 'attention-network')));
         }
+        $_POST = wp_unslash($_POST);
+        if (isset($_POST['name']) && (!is_scalar($_POST['name']) || trim((string)$_POST['name']) === '' || strlen((string)$_POST['name']) > 255)) wp_send_json_error(array('message'=>__('Enter a name with no more than 255 characters.', 'attention-network')), 400);
+        foreach (array('price_amount'=>array(0,1000000),'price_modifier'=>array(-100000,100000),'calories'=>array(0,100000)) as $field=>$range) {
+            if (isset($_POST[$field]) && $_POST[$field] !== '' && (!is_scalar($_POST[$field]) || !is_numeric($_POST[$field]) || (float)$_POST[$field] < $range[0] || (float)$_POST[$field] > $range[1] || ($field === 'calories' && !preg_match('/^\d+$/D',(string)$_POST[$field])))) wp_send_json_error(array('message'=>__('Enter a valid price, price adjustment and whole-number calorie count within the displayed limits.', 'attention-network')), 400);
+        }
+        if (isset($_POST['description']) && (!is_scalar($_POST['description']) || strlen((string)$_POST['description']) > 16000)) wp_send_json_error(array('message'=>__('Keep item descriptions within 16,000 characters.', 'attention-network')), 400);
     }
 
     public static function handle_get_menu_data() {
@@ -678,12 +672,12 @@ class Attention_Network_Menu_Admin {
         $payload = array(
             'name'           => sanitize_text_field($_POST['name'] ?? ''),
             'description'    => sanitize_textarea_field($_POST['description'] ?? ''),
-            'price_amount'   => floatval($_POST['price_amount'] ?? 0),
+            'price_amount'   => isset($_POST['price_amount']) && $_POST['price_amount'] !== '' ? floatval($_POST['price_amount']) : null,
             'price_currency' => 'USD',
             'is_available'   => true,
             'photo_url'      => esc_url_raw($_POST['photo_url'] ?? ''),
             'dietary_tags'   => $dietary,
-            'calories'       => !empty($_POST['calories']) ? intval($_POST['calories']) : null,
+            'calories'       => isset($_POST['calories']) && $_POST['calories'] !== '' ? intval($_POST['calories']) : null,
         );
 
         $result = Attention_Network_API_Client::create_item($menu_id, $section_id, $payload);
@@ -703,10 +697,10 @@ class Attention_Network_Menu_Admin {
         $payload = array(
             'name'           => sanitize_text_field($_POST['name'] ?? ''),
             'description'    => sanitize_textarea_field($_POST['description'] ?? ''),
-            'price_amount'   => floatval($_POST['price_amount'] ?? 0),
+            'price_amount'   => isset($_POST['price_amount']) && $_POST['price_amount'] !== '' ? floatval($_POST['price_amount']) : null,
             'photo_url'      => esc_url_raw($_POST['photo_url'] ?? ''),
             'dietary_tags'   => $dietary,
-            'calories'       => !empty($_POST['calories']) ? intval($_POST['calories']) : null,
+            'calories'       => isset($_POST['calories']) && $_POST['calories'] !== '' ? intval($_POST['calories']) : null,
         );
 
         $result = Attention_Network_API_Client::update_item($menu_id, $section_id, $item_id, $payload);

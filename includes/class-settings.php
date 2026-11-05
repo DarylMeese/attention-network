@@ -9,9 +9,15 @@ if (!defined('ABSPATH')) {
 
 class Attention_Network_Settings {
 
+    public static function render_unavailable($title) {
+        if (!current_user_can('manage_options')) return;
+        echo '<div class="wrap attn-admin-wrap"><h1>'.esc_html($title).'</h1><div class="notice notice-info"><p>'.esc_html__('This feature is managed in the Attention Network app. This plugin does not have a compatible connection for these actions, and will not save a separate copy or report an unsent update as successful.', 'attention-network').'</p><p><a class="button button-primary" href="https://app.attn.systems/" target="_blank" rel="noopener noreferrer">'.esc_html__('Open Attention Network', 'attention-network').'</a></p></div></div>';
+    }
+
     public static function init() {
         add_action('admin_menu', array(__CLASS__, 'register_admin_menus'));
         add_action('admin_init', array(__CLASS__, 'register_settings'));
+        add_action('admin_init', array(__CLASS__, 'retire_shared_credentials'));
         add_action('wp_ajax_attention_network_test_connection', array(__CLASS__, 'ajax_test_connection'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_settings_assets'));
     }
@@ -129,11 +135,31 @@ class Attention_Network_Settings {
         register_setting('attention_network_settings', 'attention_network_api_url', array(
             'type'              => 'string',
             'sanitize_callback' => array('Attention_Network_API_Client', 'sanitize_api_url'),
-            'default'           => 'http://localhost:3000',
+            'default'           => 'https://app.attentionnetwork.net/api',
         ));
-        register_setting('attention_network_settings', 'attention_network_org_id', 'sanitize_text_field');
-        register_setting('attention_network_settings', 'attention_network_api_key', 'sanitize_text_field');
-        register_setting('attention_network_settings', 'attention_network_cache_ttl', 'intval');
+        register_setting('attention_network_settings', 'attention_network_org_id', array('sanitize_callback'=>array(__CLASS__, 'sanitize_org')));
+        register_setting('attention_network_settings', 'attention_network_site_id', array('sanitize_callback'=>array(__CLASS__, 'sanitize_site')));
+    }
+
+    public static function sanitize_org($value) {
+        $value = trim(sanitize_text_field($value));
+        if (Attention_Network_API_Client::valid_uuid($value)) return strtolower($value);
+        add_settings_error('attention_network_org_id', 'invalid_org', __('Enter the organization UUID shown by the platform.', 'attention-network'));
+        return Attention_Network_API_Client::get_org_id();
+    }
+
+    public static function sanitize_site($value) {
+        $value = trim(sanitize_text_field($value));
+        if ($value === '' || Attention_Network_API_Client::valid_uuid($value)) return strtolower($value);
+        add_settings_error('attention_network_site_id', 'invalid_site', __('Enter a site UUID, or leave it blank to disable public menu embeds.', 'attention-network'));
+        return Attention_Network_API_Client::get_site_id();
+    }
+
+    public static function retire_shared_credentials() {
+        if (current_user_can('manage_options') && get_option('attention_network_api_key', false) !== false) {
+            delete_option('attention_network_api_key');
+            Attention_Network_API_Client::purge_menu_cache();
+        }
     }
 
     /**
@@ -197,114 +223,39 @@ class Attention_Network_Settings {
      * Render Settings Page
      */
     public static function render_settings_page() {
-        if (!current_user_can('manage_options')) {
-            return;
-        }
-
-        $apiUrl   = Attention_Network_API_Client::get_api_url();
-        $orgId    = Attention_Network_API_Client::get_org_id();
-        $apiKey   = Attention_Network_API_Client::get_api_key();
-        $cacheTtl = Attention_Network_API_Client::get_cache_ttl();
-        $isConfigured = Attention_Network_API_Client::is_configured();
+        if (!current_user_can('manage_options')) return;
+        $status = Attention_Network_Platform_Session::status();
+        $connected = !is_wp_error($status) && !empty($status['connected']);
         ?>
         <div class="wrap attn-admin-wrap">
-            <div class="attn-header">
-                <div class="attn-header-left">
-                    <span class="attn-badge">Attention Platform</span>
-                    <h1 class="attn-title"><?php esc_html_e('Attention Network Settings', 'attention-network'); ?></h1>
-                    <p class="attn-subtitle"><?php esc_html_e('Configure your organization credentials to enable live bi-directional menu management and embeds.', 'attention-network'); ?></p>
-                </div>
-                <div class="attn-header-right">
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=attention-network-menus')); ?>" class="button button-primary">
-                        <?php esc_html_e('Manage Food & Menus →', 'attention-network'); ?>
-                    </a>
-                </div>
+            <h1><?php esc_html_e('Attention Network Settings', 'attention-network'); ?></h1>
+            <p><?php esc_html_e('Connect this website to its organization. Public menus use the site’s publishing rules. Management uses your own platform permissions.', 'attention-network'); ?></p>
+            <?php settings_errors(); ?>
+            <div class="attn-card">
+                <h2><?php esc_html_e('Website connection', 'attention-network'); ?></h2>
+                <form method="post" action="options.php">
+                    <?php settings_fields('attention_network_settings'); ?>
+                    <table class="form-table"><tbody>
+                        <tr><th><label for="attention_network_api_url"><?php esc_html_e('Platform API address', 'attention-network'); ?></label></th><td><input class="regular-text" type="url" id="attention_network_api_url" name="attention_network_api_url" value="<?php echo esc_attr(Attention_Network_API_Client::get_api_url()); ?>" required /><p class="description">https://app.attentionnetwork.net/api</p></td></tr>
+                        <tr><th><label for="attention_network_org_id"><?php esc_html_e('Organization UUID', 'attention-network'); ?></label></th><td><input class="regular-text" id="attention_network_org_id" name="attention_network_org_id" value="<?php echo esc_attr(Attention_Network_API_Client::get_org_id()); ?>" required pattern="[a-fA-F0-9-]{36}" /><p class="description"><?php esc_html_e('Use the organization UUID, not its Relationship ID or name.', 'attention-network'); ?></p></td></tr>
+                        <tr><th><label for="attention_network_site_id"><?php esc_html_e('Public site UUID', 'attention-network'); ?></label></th><td><input class="regular-text" id="attention_network_site_id" name="attention_network_site_id" value="<?php echo esc_attr(Attention_Network_API_Client::get_site_id()); ?>" pattern="[a-fA-F0-9-]{36}" /><p class="description"><?php esc_html_e('The site/app publishing this organization. Required for public menu embeds. Only active, eligible public menus are displayed; private management data is never used as a fallback.', 'attention-network'); ?></p></td></tr>
+                    </tbody></table>
+                    <?php submit_button(__('Save connection', 'attention-network')); ?>
+                </form>
+                <p><?php esc_html_e('Save connection changes before signing in. Switching the API address or organization requires a separate platform connection.', 'attention-network'); ?></p>
             </div>
-
-            <?php if (isset($_GET['settings-updated']) && $_GET['settings-updated']) : ?>
-                <div class="notice notice-success is-dismissible">
-                    <p><strong><?php esc_html_e('Settings saved successfully.', 'attention-network'); ?></strong></p>
-                </div>
-            <?php endif; ?>
-
-            <div class="attn-grid">
-                <div class="attn-col-main">
-                    <div class="attn-card">
-                        <h2 class="attn-card-title"><?php esc_html_e('Organization API Credentials', 'attention-network'); ?></h2>
-                        <p class="attn-card-desc"><?php esc_html_e('These credentials authenticate this website with your Attention Network organization profile.', 'attention-network'); ?></p>
-
-                        <form method="post" action="options.php">
-                            <?php
-                            settings_fields('attention_network_settings');
-                            do_settings_sections('attention_network_settings');
-                            ?>
-
-                            <table class="form-table attn-form-table">
-                                <tr>
-                                    <th scope="row"><label for="attention_network_api_url"><?php esc_html_e('API Base URL', 'attention-network'); ?></label></th>
-                                    <td>
-                                        <input type="url" id="attention_network_api_url" name="attention_network_api_url" value="<?php echo esc_attr($apiUrl); ?>" class="regular-text" placeholder="https://api.attentionnetwork.com" required />
-                                        <p class="description"><?php esc_html_e('Default: http://localhost:3000 for local development, or your Attention Platform API URL.', 'attention-network'); ?></p>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <th scope="row"><label for="attention_network_org_id"><?php esc_html_e('Organization ID', 'attention-network'); ?></label></th>
-                                    <td>
-                                        <input type="text" id="attention_network_org_id" name="attention_network_org_id" value="<?php echo esc_attr($orgId); ?>" class="regular-text" placeholder="e.g. org_4f89d..." required />
-                                        <p class="description"><?php esc_html_e('Your Attention Network Organization UUID or slug found in Organization Settings.', 'attention-network'); ?></p>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <th scope="row"><label for="attention_network_api_key"><?php esc_html_e('API Key / Bearer Token', 'attention-network'); ?></label></th>
-                                    <td>
-                                        <input type="password" id="attention_network_api_key" name="attention_network_api_key" value="<?php echo esc_attr($apiKey); ?>" class="regular-text" placeholder="••••••••••••••••" />
-                                        <p class="description"><?php esc_html_e('Secure token to authenticate writes and modifications. Keep this confidential.', 'attention-network'); ?></p>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <th scope="row"><label for="attention_network_cache_ttl"><?php esc_html_e('Frontend Cache (Seconds)', 'attention-network'); ?></label></th>
-                                    <td>
-                                        <input type="number" id="attention_network_cache_ttl" name="attention_network_cache_ttl" value="<?php echo esc_attr($cacheTtl); ?>" min="0" max="86400" step="60" class="small-text" />
-                                        <p class="description"><?php esc_html_e('Time to cache menu data in WordPress transients (Default: 600s = 10 mins). Caches are automatically flushed whenever you save edits in the admin.', 'attention-network'); ?></p>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <div class="attn-form-actions">
-                                <?php submit_button(__('Save Settings', 'attention-network'), 'primary', 'submit', false); ?>
-                                <button type="button" id="attn-btn-test-connection" class="button button-secondary" style="margin-left: 10px;">
-                                    <?php esc_html_e('Test Connection', 'attention-network'); ?>
-                                </button>
-                                <span id="attn-connection-status" class="attn-status-text"></span>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="attn-col-sidebar">
-                    <div class="attn-card attn-card-info">
-                        <h3><?php esc_html_e('Status & Integration', 'attention-network'); ?></h3>
-                        <div class="attn-status-row">
-                            <span class="attn-status-dot <?php echo $isConfigured ? 'active' : 'inactive'; ?>"></span>
-                            <strong><?php echo $isConfigured ? esc_html__('Configured', 'attention-network') : esc_html__('Missing Organization ID', 'attention-network'); ?></strong>
-                        </div>
-                        <p class="attn-info-p">
-                            <?php esc_html_e('Once connected, your menus are accessible anywhere with shortcodes or Gutenberg blocks:', 'attention-network'); ?>
-                        </p>
-                        <code class="attn-code">[attention_menu]</code>
-                        <code class="attn-code">[attention_menu layout="taplist"]</code>
-                        <code class="attn-code">[attention_menu layout="qr"]</code>
-                    </div>
-
-                    <div class="attn-card">
-                        <h3><?php esc_html_e('Need Help?', 'attention-network'); ?></h3>
-                        <p><?php esc_html_e('To generate an API key or find your Organization ID, log in to your Attention Admin Console at /settings/integrations.', 'attention-network'); ?></p>
-                    </div>
-                </div>
+            <div class="attn-card">
+                <h2><?php esc_html_e('Your platform account', 'attention-network'); ?></h2>
+                <p><?php esc_html_e('This sign-in belongs only to your current WordPress user and browser session. Your password is never stored. Other WordPress administrators must sign in with their own platform accounts.', 'attention-network'); ?></p>
+                <p id="attn-platform-status" role="status" aria-live="polite"><?php echo $connected ? esc_html(sprintf(__('Connected as %s', 'attention-network'), $status['email'] ?? '')) : esc_html__('Not connected. Sign in to manage menus, hours, and review replies.', 'attention-network'); ?></p>
+                <form id="attn-platform-login" autocomplete="on">
+                    <p><label for="attn-platform-email"><?php esc_html_e('Platform email', 'attention-network'); ?></label><br/><input type="email" id="attn-platform-email" class="regular-text" autocomplete="username" required /></p>
+                    <p><label for="attn-platform-password"><?php esc_html_e('Platform password', 'attention-network'); ?></label><br/><input type="password" id="attn-platform-password" class="regular-text" autocomplete="current-password" required /></p>
+                    <button class="button button-primary" type="submit"><?php esc_html_e('Sign in to platform', 'attention-network'); ?></button>
+                </form>
+                <p><button type="button" class="button" id="attn-platform-logout"><?php esc_html_e('Disconnect this session', 'attention-network'); ?></button> <button type="button" class="button" id="attn-btn-test-connection"><?php esc_html_e('Check menu access', 'attention-network'); ?></button> <span id="attn-connection-status" role="status" aria-live="polite"></span></p>
             </div>
+            <div class="attn-card"><h2><?php esc_html_e('Available website content', 'attention-network'); ?></h2><p><code>[attention_menu]</code> <code>[attention_menu layout="taplist"]</code> <code>[attention_menu layout="qr"]</code> <code>[attention_reviews]</code></p><p><?php esc_html_e('Inquiries and project portfolios are WordPress-local features. Staff, offer management, push subscriptions, and public hours widgets require their platform or directory integration; this plugin does not pretend to synchronize them.', 'attention-network'); ?></p></div>
         </div>
         <?php
     }

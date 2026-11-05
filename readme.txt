@@ -4,7 +4,7 @@ Tags: restaurant menu, food menu, drink menu, taplist, qr menu, attention networ
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,6 @@ The Attention Network WordPress plugin connects your business's website to the A
 1. Upload the `attention-network` folder to the `/wp-content/plugins/` directory, or upload the zip file via **Plugins > Add New > Upload Plugin**.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Navigate to **Attention Network > Settings** in your WordPress admin menu.
-4. Enter your Organization ID, API Base URL, and API Key (Bearer Token), then click **Test Connection**.
+4. Save the Organization UUID, public Site UUID and HTTPS API address. Sign in with your own platform account, then check menu access. Shared API keys are not used for menu management.
 5. Go to **Attention Network > Food & Menus** to create and manage your menus!
 6. Add `[attention_menu]` to any page or post to display your menu.

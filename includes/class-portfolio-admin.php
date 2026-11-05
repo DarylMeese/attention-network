@@ -47,7 +47,7 @@ class Attention_Network_Portfolio_Admin {
                 <div class="attn-header-left">
                     <span class="attn-badge"><?php esc_html_e('Visual Proof', 'attention-network'); ?></span>
                     <h1 class="attn-title"><?php esc_html_e('Before & After Project Portfolio', 'attention-network'); ?></h1>
-                    <p class="attn-subtitle"><?php esc_html_e('Showcase your craftsmanship, transformations, and completed projects with interactive split comparison sliders.', 'attention-network'); ?></p>
+                    <p class="attn-subtitle"><?php esc_html_e('Projects and images are managed only on this WordPress website; they are not synchronized to the platform.', 'attention-network'); ?></p>
                 </div>
                 <div class="attn-header-right">
                     <button type="button" class="button button-primary" id="attn-btn-add-project">
@@ -254,6 +254,7 @@ class Attention_Network_Portfolio_Admin {
         );
 
         $saved = Attention_Network_API_Client::save_portfolio_item($data);
+        if (is_wp_error($saved)) wp_send_json_error(array('message'=>$saved->get_error_message()), 400);
 
         wp_send_json_success(array(
             'message' => __('Project showcase saved successfully.', 'attention-network'),
@@ -272,7 +273,8 @@ class Attention_Network_Portfolio_Admin {
             wp_send_json_error(array('message' => __('Missing project ID.', 'attention-network')), 400);
         }
 
-        Attention_Network_API_Client::delete_portfolio_item($id);
+        $result = Attention_Network_API_Client::delete_portfolio_item($id);
+        if (is_wp_error($result)) wp_send_json_error(array('message'=>$result->get_error_message()), 400);
         wp_send_json_success(array('message' => __('Project deleted.', 'attention-network')));
     }
 }

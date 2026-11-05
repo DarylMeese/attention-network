@@ -9,6 +9,29 @@
 
     $(document).ready(function () {
         var currentMenuId = $('#attn-menu-app').data('menu-id');
+        if ($('#attn-menu-app').attr('data-can-manage') === '0') {
+            $('#attn-menu-app').find('button,input,select,textarea').prop('disabled',true);
+            $('#attn-active-menu-select, .attn-tab-btn').prop('disabled',false);
+        }
+        if ($('#attn-hours-management').attr('data-can-manage') === '0') $('#attn-hours-management').find('form :input, .attn-delete-sp').prop('disabled', true);
+        $('#attn-platform-login').on('submit', function (event) {
+            event.preventDefault();
+            var $form = $(this), $button = $form.find('button[type="submit"]'), $status = $('#attn-platform-status');
+            $button.prop('disabled', true); $status.text('Signing in…');
+            var password = $('#attn-platform-password').val();
+            $('#attn-platform-password').val('');
+            $.post(attnAdmin.ajaxUrl, {action:'attention_network_platform_login',nonce:attnAdmin.nonce,email:$('#attn-platform-email').val(),password:password})
+                .done(function (response) { $status.text(response.success ? 'Platform connected. You can now check menu access.' : (response.data.message || 'Sign-in failed.')); })
+                .fail(function (xhr) { $status.text(xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data.message : 'Sign-in could not complete. Try again.'); })
+                .always(function () { password = ''; $button.prop('disabled', false); });
+        });
+        $('#attn-platform-logout').on('click', function () {
+            var $button = $(this).prop('disabled', true), $status = $('#attn-platform-status');
+            $.post(attnAdmin.ajaxUrl, {action:'attention_network_platform_logout',nonce:attnAdmin.nonce})
+                .done(function (response) { $status.text(response.success ? 'This platform session is disconnected.' : (response.data.message || 'Disconnect could not be confirmed. Try again.')); })
+                .fail(function (xhr) { $status.text(xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data.message : 'Disconnect could not be confirmed. Try again.'); })
+                .always(function () { $button.prop('disabled', false); });
+        });
 
         /* -------------------------------------------------------------
          * 1. Settings Page: Test Connection
@@ -62,12 +85,19 @@
         /* -------------------------------------------------------------
          * 4. Modals Management (Open / Close / ESC)
          * ------------------------------------------------------------- */
+        var modalReturnFocus;
         function openModal($modal) {
-            $modal.fadeIn(150);
+            modalReturnFocus = document.activeElement;
+            var $heading = $modal.find('h2').first(), titleId = $heading.attr('id') || ($modal.attr('id') + '-title');
+            $heading.attr('id', titleId);
+            $modal.find('.attn-modal').attr({'role':'dialog','aria-modal':'true','aria-labelledby':titleId});
+            $modal.find('.attn-modal-close').attr('aria-label','Close dialog');
+            $modal.fadeIn(150, function () { var $input = $modal.find('input:not([type="hidden"]),textarea,select').filter(':visible:not(:disabled)').first(); ($input.length ? $input : $modal.find('button').first()).trigger('focus'); });
         }
 
         function closeModal() {
             $('.attn-modal-backdrop').fadeOut(150);
+            if (modalReturnFocus) $(modalReturnFocus).trigger('focus');
         }
 
         $('.attn-modal-close, .attn-modal-cancel').on('click', function (e) {
@@ -84,6 +114,14 @@
         $(document).on('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeModal();
+            }
+            if (e.key === 'Tab') {
+                var $dialog = $('.attn-modal-backdrop:visible .attn-modal').last();
+                if (!$dialog.length) return;
+                var $controls = $dialog.find('input:not([type="hidden"]),button,textarea,select,a[href]').filter(':visible:not(:disabled)');
+                var first = $controls[0], last = $controls[$controls.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); $(last).trigger('focus'); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); $(first).trigger('focus'); }
             }
         });
 
@@ -104,6 +142,7 @@
             $('#attn-menu-field-id').val(currentMenuId);
             $('#attn-menu-field-name').val($('.attn-menu-name').text().trim());
             $('#attn-menu-field-desc').val($('.attn-menu-desc').text().trim());
+            $('#attn-menu-field-active').prop('checked', String($('#attn-menu-app').attr('data-is-active')) === '1');
             openModal($('#attn-modal-menu'));
         });
 
@@ -505,6 +544,7 @@
             e.preventDefault();
             var $status = $('#attn-hours-status-msg').text('Saving regular hours...');
             var locationId = $('#attn_hours_location_id').val();
+            var hoursVersion = $('#attn_hours_version').val();
             var emergencyDispatch = $('#attn_emergency_dispatch').is(':checked') ? '1' : '0';
 
             var hoursArray = [];
@@ -526,10 +566,11 @@
                 action: 'attention_network_save_weekly_hours',
                 nonce: attnAdmin.nonce,
                 location_id: locationId,
-                emergency_dispatch: emergencyDispatch,
+                version: hoursVersion,
                 hours: hoursArray
             }, function (res) {
                 if (res.success) {
+                    $('#attn_hours_version').val(res.data.version || '');
                     $status.css('color', '#059669').text('✓ Hours saved successfully.');
                     setTimeout(function () { $status.text(''); }, 3000);
                 } else {
@@ -575,7 +616,8 @@
                 action: 'attention_network_delete_special_hours',
                 nonce: attnAdmin.nonce,
                 location_id: locationId,
-                special_hours_id: spId
+                special_hours_id: spId,
+                version: $(this).attr('data-version')
             }, function (res) {
                 if (res.success) {
                     window.location.reload();
@@ -774,7 +816,7 @@
             var existingReply = $(this).data('reply') || '';
             $('#attn-reply-review-id').val(revId);
             $('#attn-reply-text').val(existingReply);
-            $('#attn-reply-modal').fadeIn(150);
+            openModal($('#attn-reply-modal'));
         });
 
         $('#attn-btn-submit-reply').on('click', function () {
@@ -827,8 +869,8 @@
 
             var html = '<div style="line-height:1.6;font-size:13px;">' +
                 '<p><strong>Client Name:</strong> ' + $('<div>').text(lead.name || 'Unknown').html() + '</p>' +
-                '<p><strong>Phone:</strong> ' + (lead.phone ? '<a href="tel:' + lead.phone + '">' + $('<div>').text(lead.phone).html() + '</a>' : '—') + '</p>' +
-                '<p><strong>Email:</strong> ' + (lead.email ? '<a href="mailto:' + lead.email + '">' + $('<div>').text(lead.email).html() + '</a>' : '—') + '</p>' +
+                '<p><strong>Phone:</strong> ' + (lead.phone ? $('<a>').attr('href','tel:' + lead.phone).text(lead.phone).prop('outerHTML') : '—') + '</p>' +
+                '<p><strong>Email:</strong> ' + (lead.email ? $('<a>').attr('href','mailto:' + lead.email).text(lead.email).prop('outerHTML') : '—') + '</p>' +
                 '<p><strong>Service Requested:</strong> ' + $('<div>').text(lead.service || 'General').html() + '</p>' +
                 '<p><strong>Service Location:</strong> ' + $('<div>').text(lead.address || '—').html() + '</p>' +
                 '<p><strong>Urgency:</strong> ' + (lead.urgency === 'emergency' ? '<span style="color:#dc2626;font-weight:700;">🚨 24/7 Emergency Dispatch</span>' : $('<div>').text(lead.urgency || 'Normal').html()) + '</p>' +
@@ -837,7 +879,7 @@
 
             $('#attn-lead-modal-content').html(html);
             $('#attn-lead-internal-notes').val(lead.internalNotes || '');
-            $('#attn-lead-modal').fadeIn(150);
+            openModal($('#attn-lead-modal'));
         });
 
         $('#attn-btn-save-lead-notes').on('click', function () {
@@ -868,7 +910,7 @@
             $('#attn-project-modal-title').text('Add Showcase Project');
             $('#attn-project-form')[0].reset();
             $('#attn-project-id').val('');
-            $('#attn-project-modal').fadeIn(150);
+            openModal($('#attn-project-modal'));
         });
 
         $(document).on('click', '.attn-btn-edit-project', function () {
@@ -883,7 +925,7 @@
             $('#attn-project-after-url').val(data.afterUrl || '');
             $('#attn-project-location').val(data.location || '');
             $('#attn-project-description').val(data.description || '');
-            $('#attn-project-modal').fadeIn(150);
+            openModal($('#attn-project-modal'));
         });
 
         $('#attn-btn-save-project').on('click', function () {

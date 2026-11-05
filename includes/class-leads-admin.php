@@ -74,7 +74,7 @@ class Attention_Network_Leads_Admin {
                 <div class="attn-header-left">
                     <span class="attn-badge"><?php esc_html_e('Inbound Intake', 'attention-network'); ?></span>
                     <h1 class="attn-title"><?php esc_html_e('Inbound Quotes & Leads Queue', 'attention-network'); ?></h1>
-                    <p class="attn-subtitle"><?php esc_html_e('Instant intake for service estimates, quote requests, consultations, and 24/7 emergency dispatch inquiries.', 'attention-network'); ?></p>
+                    <p class="attn-subtitle"><?php esc_html_e('Stored only on this WordPress website; not synchronized to platform leads. The most recent 200 inquiries are retained.', 'attention-network'); ?></p>
                 </div>
             </div>
 
@@ -232,13 +232,14 @@ class Attention_Network_Leads_Admin {
 
         $lead_id = isset($_POST['lead_id']) ? sanitize_text_field(wp_unslash($_POST['lead_id'])) : '';
         $status  = isset($_POST['status']) ? sanitize_text_field(wp_unslash($_POST['status'])) : 'new';
-        $notes   = isset($_POST['notes']) ? sanitize_textarea_field(wp_unslash($_POST['notes'])) : '';
+        $notes   = isset($_POST['notes']) ? sanitize_textarea_field(wp_unslash($_POST['notes'])) : null;
 
         if (empty($lead_id)) {
             wp_send_json_error(array('message' => __('Missing lead ID.', 'attention-network')), 400);
         }
 
-        Attention_Network_API_Client::update_lead_status($lead_id, $status, $notes);
+        $result = Attention_Network_API_Client::update_lead_status($lead_id, $status, $notes);
+        if (is_wp_error($result)) wp_send_json_error(array('message'=>$result->get_error_message()), 400);
 
         wp_send_json_success(array('message' => __('Lead updated.', 'attention-network')));
     }
@@ -294,6 +295,12 @@ class Attention_Network_Leads_Admin {
             wp_send_json_error(array('message' => __('Please provide your name and either a phone number or email address.', 'attention-network')), 400);
             exit;
         }
+        if ((trim((string)($_POST['email'] ?? '')) !== '' && !is_email($email)) || ($phone !== '' && (!preg_match('/^[+0-9(). x#-]{6,64}$/D', $phone) || strlen(preg_replace('/\D/', '', $phone)) < 6))) {
+            wp_send_json_error(array('message'=>__('Enter a valid email address and phone number.', 'attention-network')), 400);
+        }
+        if (strlen($name)>191 || strlen($email)>254 || strlen($service)>200 || strlen($address)>500 || strlen($message)>10000 || !in_array($urgency, array('normal','emergency'), true)) {
+            wp_send_json_error(array('message'=>__('Check the form values. Keep the name, service, address and message within their displayed limits.', 'attention-network')), 400);
+        }
 
         $lead_data = array(
             'name'      => $name,
@@ -304,10 +311,10 @@ class Attention_Network_Leads_Admin {
             'message'   => $message,
             'address'   => $address,
             'status'    => 'new',
-            'clientIp'  => $client_ip,
         );
 
-        Attention_Network_API_Client::save_lead($lead_data);
+        $saved = Attention_Network_API_Client::save_lead($lead_data);
+        if (is_wp_error($saved)) wp_send_json_error(array('message'=>$saved->get_error_message()), 503);
 
         // Optional notification dispatch to site admin
         $admin_email = get_option('admin_email');
