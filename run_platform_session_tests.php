@@ -23,12 +23,13 @@ function wp_json_encode($v) { return json_encode($v); }
 function wp_generate_uuid4() { return bin2hex(random_bytes(16)); }
 function is_email($v) { return filter_var($v,FILTER_VALIDATE_EMAIL); }
 function wp_unslash($v) { return $v; }
+function wp_slash($v) { return addslashes($v); }
 function add_action($name,$handler) { global $fixture; $fixture['actions'][$name]=$handler; }
 function check_ajax_referer($action,$name,$die) { global $fixture; return $action==='attention_network_admin_nonce' && $name==='nonce' && $fixture['nonce']; }
 function wp_send_json_success($v) { throw new RuntimeException(json_encode(array('ok'=>true,'data'=>$v))); }
 function wp_send_json_error($v,$status) { throw new RuntimeException(json_encode(array('ok'=>false,'data'=>$v,'status'=>$status))); }
 function get_user_meta($u,$key,$single) { global $fixture; return $fixture['meta'][$u][$key] ?? ''; }
-function update_user_meta($u,$key,$value) { global $fixture; if ($fixture['storeFails']) return false; $fixture['meta'][$u][$key]=$value; return true; }
+function update_user_meta($u,$key,$value) { global $fixture; if ($fixture['storeFails']) return false; $fixture['meta'][$u][$key]=stripslashes($value); return true; }
 function delete_user_meta($u,$key) { global $fixture; unset($fixture['meta'][$u][$key]); return true; }
 function get_option($key,$default='') { global $fixture; return $fixture['options'][$key] ?? $default; }
 function add_option($key,$v,$unused='',$autoload='') { global $fixture; if (array_key_exists($key,$fixture['options'])) return false; $fixture['options'][$key]=$v; return true; }
@@ -64,6 +65,12 @@ require __DIR__.'/includes/class-platform-session.php';
 $passed=0;
 function run_case($name,$fn) { global $passed; reset_fixture(); $fn(); ++$passed; echo "PASS $name\n"; }
 
+run_case('actual WordPress metadata unslashing preserves the encrypted session byte-for-byte',function(){
+ global $fixture;$issued=tokens(3600,str_repeat('metadata-roundtrip/',128));$fixture['responses'][]=response(200,$issued);$fixture['responses'][]=response(200,array('success'=>true));
+ $result=Attention_Network_Platform_Session::login('qa@example.test','fake');check(!is_wp_error($result),'Encrypted JSON failed the actual WordPress metadata round-trip');
+ check(Attention_Network_Platform_Session::get_access_token()===$issued['access_token'],'Encrypted token must decrypt after WordPress strips metadata slashes');
+ check(strpos(json_encode($fixture['meta']),$issued['access_token'])===false,'Metadata must remain ciphertext');check(count($fixture['calls'])===1,'Successful storage must not revoke the new session');
+});
 run_case('login uses exact private auth contract, encrypted storage and safe status only',function(){
  global $fixture; enqueue_login(); $status=Attention_Network_Platform_Session::login('qa@example.test','not-a-real-password');
  check($status===array('connected'=>true,'email'=>'qa@example.test','needsLogin'=>false),'Safe login status');

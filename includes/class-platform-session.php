@@ -122,7 +122,8 @@ class Attention_Network_Platform_Session {
             $cipher = openssl_encrypt(wp_json_encode($value), 'aes-256-gcm', $context['key'], OPENSSL_RAW_DATA, $iv, $tag, $context['binding']);
             if (!is_string($cipher)) { throw new RuntimeException('Encryption unavailable'); }
             $stored = wp_json_encode(array('v' => 1, 'iv' => base64_encode($iv), 'tag' => base64_encode($tag), 'ciphertext' => base64_encode($cipher)));
-            update_user_meta($context['user'], $context['meta'], $stored);
+            // WordPress unslashes metadata before storage; preserve escaped JSON bytes exactly.
+            update_user_meta($context['user'], $context['meta'], wp_slash($stored));
             if (get_user_meta($context['user'], $context['meta'], true) !== $stored) { throw new RuntimeException('Storage unavailable'); }
             return true;
         } catch (Throwable $error) {
